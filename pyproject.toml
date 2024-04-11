@@ -1,0 +1,21 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mptools"
+version = "0.0.1"
+
+dependencies = [
+  "essentia",
+]
+
+requires-python = ">= 3.8"
+
+[project.scripts]
+live2lite = "mptools:live2lite.main"
+loudness = "mptools:loudness.main"
+
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/mptools"]
