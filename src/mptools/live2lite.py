@@ -20,29 +20,37 @@ def find_and_delete_nodes(root, node_name):
     return root
 
 
-parser = ArgumentParser(description="Convert a Live project to a Lite project")
-parser.add_argument("input_file", type=Path, help="The input .als Ableton project file")
+def live2lite(audio_file: Path):
+    """
+    Convert a Live project to a Lite project
+    """
 
-# read als file with argparse
-args = parser.parse_args()
-input_file = args.input_file
+    # uncompress als project (gzip format)
+    with gzip.open(audio_file, "rb") as f_in:
+        file_content = f_in.read()
 
-# uncompress als project (gzip format)
-with gzip.open(input_file, "rb") as f_in:
-    file_content = f_in.read()
+    # read xml file inside als project
+    root = ET.fromstring(file_content)
 
-# read xml file inside als project
-root = ET.fromstring(file_content)
+    # find /lanes fiends in the xml file and remove them
+    print("Removing TakeLanes...")
+    root = find_and_delete_nodes(root, "TakeLanes")
+    print(f"Removed {n_nodes} TakeLanes")
 
-# find /lanes fiends in the xml file and remove them
-print("Removing TakeLanes...")
-root = find_and_delete_nodes(root, "TakeLanes")
-print(f"Removed {n_nodes} TakeLanes")
-n_nodes = 0
+    output_content = ET.tostring(root, xml_declaration=True, encoding="UTF-8")
 
-output_content = ET.tostring(root, xml_declaration=True, encoding="UTF-8")
+    # create a new xml file with the _lite suffix
+    output_file = audio_file.with_suffix(".lite.als")
+    with gzip.open(output_file, "wb") as f_out:
+        f_out.write(output_content)
 
-# create a new xml file with the _lite suffix
-output_file = input_file.with_suffix(".lite.als")
-with gzip.open(output_file, "wb") as f_out:
-    f_out.write(output_content)
+
+def main():
+    parser = ArgumentParser(description="Convert a Live project to a Lite project")
+    parser.add_argument(
+        "audio_file", type=Path, help="The input .als Ableton project file"
+    )
+
+    args = parser.parse_args()
+    audio_file = args.audio_file
+    live2lite(audio_file)
