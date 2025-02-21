@@ -1,0 +1,5 @@
+# model files
+*.pb
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
