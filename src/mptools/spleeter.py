@@ -26,6 +26,7 @@ metadata = {
 }
 
 target_sr = 44100
+script_dir = Path(__file__).parent
 
 
 def resample(audio, sr, target_sr):
@@ -40,7 +41,7 @@ def resample(audio, sr, target_sr):
 def spleeter(audio_path: Path, model: str = "2_stems"):
     """Use Spleeter to separate the audio into stems."""
     stem_names = metadata[model]["stem_names"]
-    weights_file = Path("weights", "spleeter", metadata[model]["weights"])
+    weights_file = script_dir / "weights" / "spleeter" / metadata[model]["weights"]
 
     audio, sr, _, _, _, _ = AudioLoader(filename=str(audio_path))()
 
