@@ -2,31 +2,57 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 import numpy as np
-from essentia.standard import AudioLoader, MonoWriter, TensorflowPredict
+from essentia.standard import AudioLoader, AudioWriter, Resample, TensorflowPredict
 from essentia import Pool
 
 
-SPLEETER_MODEL = "weights/spleeter/spleeter-5s-3.pb"
+metadata = {
+    "2_stems": {
+        "stem_names": [
+            "waveform_accompaniment",
+            "waveform_vocals",
+        ],
+        "weights": "spleeter-2s-3.pb",
+    },
+    "4_stems": {
+        "stem_names": [
+            "waveform_bass",
+            "waveform_drums",
+            "waveform_other",
+            "waveform_vocals",
+        ],
+        "weights": "spleeter-4s-3.pb",
+    },
+}
+
+target_sr = 44100
 
 
-def spleeter(audio_path: Path):
-    audio, sr, n_channels, _, _, _ = AudioLoader(filename=str(audio_path))()
+def resample(audio, sr, target_sr):
+    """Resample audio to target sample rate."""
+    if sr != target_sr:
+        print(f"Resampling audio from {sr} to {target_sr}")
+        resampler = Resample(inputSampleRate=sr, outputSampleRate=target_sr)
+        audio = resampler(audio)
+    return audio
+
+
+def spleeter(audio_path: Path, model: str = "2_stems"):
+    """Use Spleeter to separate the audio into stems."""
+    stem_names = metadata[model]["stem_names"]
+    weights_file = Path("weights", "spleeter", metadata[model]["weights"])
+
+    audio, sr, _, _, _, _ = AudioLoader(filename=str(audio_path))()
+
+    audio = resample(audio, sr, target_sr)
 
     pool = Pool()
 
     # The input needs to have 4 dimensions so that it is interpreted as an Essentia tensor.
     pool.set("waveform", audio[..., np.newaxis, np.newaxis])
 
-    stem_names = [
-        "waveform_vocals",
-        "waveform_drums",
-        "waveform_bass",
-        "waveform_piano",
-        "waveform_other",
-    ]
-
     model = TensorflowPredict(
-        graphFilename=SPLEETER_MODEL,
+        graphFilename=str(weights_file),
         inputs=["waveform"],
         outputs=stem_names,
     )
@@ -37,18 +63,32 @@ def spleeter(audio_path: Path):
         stem = out_pool[stem_name].squeeze()
 
         stem_name = stem_name.split("_")[-1]
-        output_path = audio_path.with_name(f"{audio_path.stem}_{stem_name}.wav")
+        output_path = audio_path.with_stem(f"{audio_path.stem}.{stem_name}")
 
-        print(f"Writing {output_path}")
-        MonoWriter(filename=str(output_path), sampleRate=sr)(stem)
+        if stem.shape[0] > 0:
+            print(f"Writing {output_path}")
+            AudioWriter(filename=str(output_path), sampleRate=sr)(stem)
+        else:
+            print(f"Skipping {stem_name} stem because it is empty")
 
-    print("Done!")
+    print("done!")
 
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("audio", type=Path, help="Path to the audio file")
+    parser.add_argument(
+        "audio",
+        type=Path,
+        help="Path to the audio file",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        choices=["2_stems", "4_stems"],
+        default="4_stems",
+        help="Model to use",
+    )
 
     args = parser.parse_args()
-    audio_file = args.audio
-    spleeter(audio_file)
+
+    spleeter(audio_path=args.audio, model=args.model)
