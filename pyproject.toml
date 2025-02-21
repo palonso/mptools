@@ -4,13 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mptools"
-version = "0.0.1"
+version = "0.0.2"
 
 dependencies = [
   "essentia-tensorflow",
+  "numpy==1.26",
 ]
 
-requires-python = ">= 3.8"
+requires-python = ">= 3.10"
 
 [project.scripts]
 live2lite = "mptools:live2lite.main"
