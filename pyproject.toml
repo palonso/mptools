@@ -17,6 +17,7 @@ requires-python = ">= 3.10"
 live2lite = "mptools:live2lite.main"
 loudness = "mptools:loudness.main"
 spleeter = "mptools:spleeter.main"
+normalize = "mptools:normalize.main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mptools"]
