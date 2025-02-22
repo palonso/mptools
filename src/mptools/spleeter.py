@@ -38,7 +38,7 @@ def resample(audio, sr, target_sr):
     return audio
 
 
-def spleeter(audio_path: Path, model: str = "2_stems"):
+def spleeter(audio_path: Path, model: str = "2_stems", format: str = "same"):
     """Use Spleeter to separate the audio into stems."""
     stem_names = metadata[model]["stem_names"]
     weights_file = script_dir / "weights" / "spleeter" / metadata[model]["weights"]
@@ -66,6 +66,9 @@ def spleeter(audio_path: Path, model: str = "2_stems"):
         stem_name = stem_name.split("_")[-1]
         output_path = audio_path.with_stem(f"{audio_path.stem}.{stem_name}")
 
+        if format != "same":
+            output_path = output_path.with_suffix(f".{format}")
+
         if stem.shape[0] > 0:
             print(f"Writing {output_path}")
             AudioWriter(filename=str(output_path), sampleRate=sr)(stem)
@@ -89,7 +92,13 @@ def main():
         default="4_stems",
         help="Model to use",
     )
+    parser.add_argument(
+        "--format",
+        type=str,
+        default="same",
+        help="Output audio format. Use `same` to keep the same format",
+    )
 
     args = parser.parse_args()
 
-    spleeter(audio_path=args.audio, model=args.model)
+    spleeter(audio_path=args.audio, model=args.model, format=args.format)
